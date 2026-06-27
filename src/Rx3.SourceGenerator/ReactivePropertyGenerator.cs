@@ -26,7 +26,7 @@ public sealed class ReactivePropertyGenerator : IIncrementalGenerator
                     propDecl.Modifiers.Any(SyntaxKind.PartialKeyword))
                     return true;
 
-                if (node is FieldDeclarationSyntax fieldDecl)
+                if (node is FieldDeclarationSyntax)
                     return true;
 
                 return false;
@@ -43,9 +43,9 @@ public sealed class ReactivePropertyGenerator : IIncrementalGenerator
         var node = ctx.Node;
 
         // Check for [Reactive] attribute
-        bool hasReactive = false;
-        string propName = "", fieldName = "", propType = "";
-        TypeDeclarationSyntax? typeDecl = null;
+        bool hasReactive;
+        string propName, fieldName, propType;
+        TypeDeclarationSyntax? typeDecl;
 
         if (node is PropertyDeclarationSyntax propDecl)
         {

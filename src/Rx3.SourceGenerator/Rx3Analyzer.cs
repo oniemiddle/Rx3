@@ -35,7 +35,7 @@ public sealed class Rx3Analyzer : DiagnosticAnalyzer
         description: "Subscription results from Observable.Subscribe() should be added to a DisposableBag to prevent memory leaks.");
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
-        ImmutableArray.Create(MissingDisposeRule, MissingAddToRule);
+        [MissingDisposeRule, MissingAddToRule];
 
     public override void Initialize(AnalysisContext context)
     {

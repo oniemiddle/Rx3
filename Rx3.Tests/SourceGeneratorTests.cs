@@ -57,6 +57,35 @@ public partial class SourceGeneratorTests
         count.ShouldBe(0);
     }
 
+    // ── ReactiveCommand generator ─────────────────────────────────────
+
+    [Fact]
+    public void ReactiveCommandAttribute_GeneratesProperty()
+    {
+        var vm = new CommandViewModel();
+        vm.LoginCommand.ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void ReactiveCommandAttribute_Execute_InvokesMethod()
+    {
+        var vm = new CommandViewModel();
+        vm.LoginCommand.Execute(R3.Unit.Default);
+        vm.LoginCalled.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void ReactiveCommandAttribute_WhenChanged_Emits()
+    {
+        var vm = new CommandViewModel();
+        var count = 0;
+        using var sub = vm.WhenLogin().Subscribe(_ => count++);
+
+        vm.LoginCommand.Execute(R3.Unit.Default);
+
+        count.ShouldBe(1);
+    }
+
     // Test ViewModel with [Reactive] partial property
     private partial class TestViewModel : ReactiveObject
     {
@@ -64,5 +93,14 @@ public partial class SourceGeneratorTests
         public partial string? Name { get; set; }
 
         public string NonReactive { get; set; } = "";
+    }
+
+    // Test ViewModel with [ReactiveCommand]
+    private partial class CommandViewModel : ReactiveObject
+    {
+        public bool LoginCalled;
+
+        [ReactiveCommand]
+        private void Login() => LoginCalled = true;
     }
 }
