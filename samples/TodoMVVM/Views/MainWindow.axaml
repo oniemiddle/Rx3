@@ -1,0 +1,48 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="Rx3.Samples.TodoMVVM.MainWindow"
+        x:CompileBindings="False"
+        Title="Rx3 TodoMVVM"
+        Width="480" Height="480">
+  <DockPanel LastChildFill="True" Margin="16">
+    <!-- Header -->
+    <TextBlock DockPanel.Dock="Top" Text="Rx3 TodoMVVM" FontSize="20"
+               FontWeight="Bold" Margin="0 0 0 12" />
+
+    <!-- Add new item -->
+    <DockPanel DockPanel.Dock="Top" Margin="0 0 0 8">
+      <Button DockPanel.Dock="Right" Command="{Binding AddItemCommand}"
+              Content="Add" Width="72" Margin="8 0 0 0" />
+      <TextBox Text="{Binding NewItemText.Value}"
+               Watermark="What needs to be done?" />
+    </DockPanel>
+
+    <!-- Stats bar -->
+    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Spacing="16"
+                Margin="0 8 0 0">
+      <TextBlock Text="{Binding ActiveCount.Value}" />
+      <TextBlock Text=" items left" />
+      <TextBox Text="{Binding FilterText.Value}" Watermark="Filter..."
+               Width="160" />
+      <Button Command="{Binding ClearCompletedCommand}" Content="Clear completed"
+              HorizontalAlignment="Right" />
+    </StackPanel>
+
+    <!-- Item list -->
+    <ListBox ItemsSource="{Binding Items}"
+             Margin="0 8">
+      <ListBox.ItemTemplate>
+        <DataTemplate>
+          <DockPanel Margin="4" LastChildFill="True">
+            <Button DockPanel.Dock="Right"
+                    Command="{Binding $parent[Window].DataContext.RemoveItemCommand}"
+                    CommandParameter="{Binding}"
+                    Content="X" Width="28" />
+            <CheckBox IsChecked="{Binding IsCompleted.Value}"
+                      Content="{Binding Text.Value}" />
+          </DockPanel>
+        </DataTemplate>
+      </ListBox.ItemTemplate>
+    </ListBox>
+  </DockPanel>
+</Window>

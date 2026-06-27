@@ -9,4 +9,8 @@
   <Project Path="test/Rx3.Tests/Rx3.Tests.csproj" />
   <Project Path="src/Rx3.SourceGenerator/Rx3.SourceGenerator.csproj" />
   <Project Path="src/Rx3/Rx3.csproj" />
+  <Folder Name="/Samples/">
+    <Project Path="samples/Counter/Counter.csproj" />
+    <Project Path="samples/TodoMVVM/TodoMVVM.csproj" />
+  </Folder>
 </Solution>
