@@ -1,0 +1,10 @@
+{
+  "Version": 1,
+  "ProjectRoot": "F:\\Rx3",
+  "Skills": [
+    "coverage-analysis",
+    "coverlet",
+    "xunit"
+  ],
+  "UpdatedAt": "2026-06-27T04:07:39.315985+00:00"
+}

@@ -8,6 +8,11 @@
 
     <ItemGroup>
       <PackageReference Include="R3Extensions.Avalonia" />
+      <PackageReference Include="Avalonia" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\src\Rx3\Rx3.csproj" />
     </ItemGroup>
 
 </Project>
