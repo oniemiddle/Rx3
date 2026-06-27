@@ -8,8 +8,8 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\src\Rx3\Rx3.csproj" />
-      <ProjectReference Include="..\src\Rx3.SourceGenerator\Rx3.SourceGenerator.csproj"
+      <ProjectReference Include="..\..\src\Rx3\Rx3.csproj" />
+      <ProjectReference Include="..\..\src\Rx3.SourceGenerator\Rx3.SourceGenerator.csproj"
                         OutputItemType="Analyzer"
                         ReferenceOutputAssembly="false"
                         PrivateAssets="all" />

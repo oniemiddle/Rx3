@@ -2,15 +2,11 @@
   <Folder Name="/Agent/">
     <File Path="AGENTS.md" />
   </Folder>
-  <Folder Name="/Docs/">
-    <File Path="docs/R3_API/reference_factory.md" />
-    <File Path="docs/R3_API/reference_operator.md" />
-  </Folder>
   <Folder Name="/Solution Items/">
     <File Path="Directory.Packages.props" />
   </Folder>
-  <Project Path="Rx3.Avalonia/Rx3.Avalonia.csproj" />
-  <Project Path="Rx3.Tests/Rx3.Tests.csproj" />
+  <Project Path="src/Rx3.Avalonia/Rx3.Avalonia.csproj" />
+  <Project Path="test/Rx3.Tests/Rx3.Tests.csproj" />
   <Project Path="src/Rx3.SourceGenerator/Rx3.SourceGenerator.csproj" />
   <Project Path="src/Rx3/Rx3.csproj" />
 </Solution>
