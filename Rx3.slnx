@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="Rx3.Avalonia/Rx3.Avalonia.csproj" />
+  <Project Path="src/Rx3/Rx3.csproj" />
+</Solution>
