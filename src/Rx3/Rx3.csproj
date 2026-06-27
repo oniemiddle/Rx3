@@ -10,4 +10,10 @@
       <PackageReference Include="R3" />
     </ItemGroup>
 
+    <!-- Source Generator: build first, then use directly -->
+    <ItemGroup>
+      <ProjectReference Include="..\Rx3.SourceGenerator\Rx3.SourceGenerator.csproj" ReferenceOutputAssembly="false" />
+      <Analyzer Include="..\Rx3.SourceGenerator\bin\$(Configuration)\netstandard2.0\Rx3.SourceGenerator.dll" />
+    </ItemGroup>
+
 </Project>
