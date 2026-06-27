@@ -1,7 +1,7 @@
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 
-namespace Rx3.Samples.Counter;
+namespace Counter;
 
 public partial class App : Application
 {
@@ -9,9 +9,9 @@ public partial class App : Application
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            desktop.MainWindow = new MainWindow
+            desktop.MainWindow = new global::Counter.MainWindow
             {
-                DataContext = new CounterViewModel(),
+                DataContext = new global::Counter.CounterViewModel(),
             };
         }
 

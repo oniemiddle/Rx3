@@ -1,8 +1,8 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:local="using:Rx3.Samples.Counter"
-        x:Class="Rx3.Samples.Counter.MainWindow"
-        x:DataType="local:CounterViewModel"
+        xmlns:counter="clr-namespace:Counter"
+        x:Class="Counter.MainWindow"
+        x:DataType="counter:CounterViewModel"
         Title="Rx3 Counter"
         Width="320" Height="240">
   <StackPanel Spacing="12" Margin="20" VerticalAlignment="Center">

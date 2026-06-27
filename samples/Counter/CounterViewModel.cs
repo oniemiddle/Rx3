@@ -1,6 +1,7 @@
 using R3;
+using Rx3;
 
-namespace Rx3.Samples.Counter;
+namespace Counter;
 
 public partial class CounterViewModel : ReactiveObject
 {
@@ -17,10 +18,12 @@ public partial class CounterViewModel : ReactiveObject
         Step = 1;
 
         CanIncrement = new BindableReactiveProperty<bool>(true);
-
+        
+        
         // CanIncrement follows the count threshold
-        Observable.EveryValueChanged(this, x => x.Count)
-            .Select(c => c < 100)
+        // Observable.EveryValueChanged(this, x => x.Count)
+        WhenValueChanged(() => Count)
+            .Select(c => c < 10)
             .Subscribe(x => CanIncrement.Value = x)
             .AddTo(ref DisposableBag);
     }

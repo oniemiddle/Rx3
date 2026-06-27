@@ -1,6 +1,6 @@
-using R3;
+using Rx3;
 
-namespace Rx3.Samples.TodoMVVM;
+namespace TodoMVVM.ViewModels;
 
 public partial class TodoItemViewModel : ReactiveObject
 {

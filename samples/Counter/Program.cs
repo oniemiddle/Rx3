@@ -1,7 +1,7 @@
 using Avalonia;
 using Rx3.Avalonia;
 
-namespace Rx3.Samples.Counter;
+namespace Counter;
 
 public static class Program
 {

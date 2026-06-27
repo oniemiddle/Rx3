@@ -1,4 +1,4 @@
-using ObservableCollections;
+using Avalonia.Collections;
 using R3;
 using Rx3;
 
@@ -6,9 +6,7 @@ namespace TodoMVVM.ViewModels;
 
 public partial class TodoListViewModel : ReactiveObject
 {
-    private readonly ObservableList<TodoItemViewModel> _items = new();
-
-    public IReadOnlyList<TodoItemViewModel> Items => _items;
+    public AvaloniaList<TodoItemViewModel> Items { get; } = [];
 
     [Reactive]
     public partial string NewItemText { get; set; }
@@ -16,7 +14,7 @@ public partial class TodoListViewModel : ReactiveObject
     [Reactive]
     public partial string FilterText { get; set; }
 
-    public Rx3.BindableReactiveProperty<int> ActiveCount { get; }
+    public BindableReactiveProperty<int> ActiveCount { get; }
 
     public ReactiveCommand<TodoItemViewModel> RemoveItemCommand { get; }
 
@@ -29,17 +27,17 @@ public partial class TodoListViewModel : ReactiveObject
         // RemoveItem command (parameterized, can't use source generator)
         RemoveItemCommand = always.ToReactiveCommand<TodoItemViewModel>(item =>
         {
-            _items.Remove(item);
-            item?.Dispose();
+            Items.Remove(item);
+            item.Dispose();
             UpdateActiveCount();
         });
 
         // Seed data
-        _items.Add(new TodoItemViewModel("Learn Rx3") { IsCompleted = true });
-        _items.Add(new TodoItemViewModel("Build an app"));
-        _items.Add(new TodoItemViewModel("Write tests"));
+        Items.Add(new TodoItemViewModel("Learn Rx3") { IsCompleted = true });
+        Items.Add(new TodoItemViewModel("Build an app"));
+        Items.Add(new TodoItemViewModel("Write tests"));
 
-        ActiveCount = new Rx3.BindableReactiveProperty<int>(_items.Count(x => !x.IsCompleted));
+        ActiveCount = new BindableReactiveProperty<int>(Items.Count(x => !x.IsCompleted));
 
         // Wire filter text changes
         _filterSub = WhenValueChanged(() => FilterText)
@@ -50,7 +48,7 @@ public partial class TodoListViewModel : ReactiveObject
     private void AddItem()
     {
         if (string.IsNullOrWhiteSpace(NewItemText)) return;
-        _items.Add(new TodoItemViewModel(NewItemText.Trim()));
+        Items.Add(new TodoItemViewModel(NewItemText.Trim()));
         NewItemText = "";
         UpdateActiveCount();
     }
@@ -58,10 +56,10 @@ public partial class TodoListViewModel : ReactiveObject
     [ReactiveCommand]
     private void ClearCompleted()
     {
-        var completed = _items.Where(x => x.IsCompleted).ToArray();
+        var completed = Items.Where(x => x.IsCompleted).ToArray();
         foreach (var item in completed)
         {
-            _items.Remove(item);
+            Items.Remove(item);
             item.Dispose();
         }
         UpdateActiveCount();
@@ -70,8 +68,8 @@ public partial class TodoListViewModel : ReactiveObject
     private void UpdateActiveCount()
     {
         var filtered = string.IsNullOrEmpty(FilterText)
-            ? _items
-            : _items.Where(x => x.Text.Contains(FilterText, StringComparison.OrdinalIgnoreCase));
+            ? Items
+            : Items.Where(x => x.Text.Contains(FilterText, StringComparison.OrdinalIgnoreCase));
         ActiveCount.Value = filtered.Count(x => !x.IsCompleted);
     }
 
@@ -80,7 +78,7 @@ public partial class TodoListViewModel : ReactiveObject
         if (disposing)
         {
             _filterSub?.Dispose();
-            foreach (var item in _items)
+            foreach (var item in Items)
                 item.Dispose();
         }
         base.Dispose(disposing);

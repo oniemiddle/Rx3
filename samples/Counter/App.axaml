@@ -1,6 +1,6 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             x:Class="Rx3.Samples.Counter.App">
+             x:Class="Counter.App">
     <Application.Styles>
         <FluentTheme />
     </Application.Styles>

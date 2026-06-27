@@ -1,7 +1,8 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        x:Class="Rx3.Samples.TodoMVVM.MainWindow"
-        x:CompileBindings="False"
+        xmlns:vm="using:TodoMVVM.ViewModels"
+        x:Class="TodoMVVM.Views.MainWindow"
+        x:DataType="vm:TodoListViewModel"
         Title="Rx3 TodoMVVM"
         Width="480" Height="480">
   <DockPanel LastChildFill="True" Margin="16">
@@ -13,8 +14,8 @@
     <DockPanel DockPanel.Dock="Top" Margin="0 0 0 8">
       <Button DockPanel.Dock="Right" Command="{Binding AddItemCommand}"
               Content="Add" Width="72" Margin="8 0 0 0" />
-      <TextBox Text="{Binding NewItemText.Value}"
-               Watermark="What needs to be done?" />
+      <TextBox Text="{Binding NewItemText}"
+               PlaceholderText="What needs to be done?" />
     </DockPanel>
 
     <!-- Stats bar -->
@@ -22,7 +23,7 @@
                 Margin="0 8 0 0">
       <TextBlock Text="{Binding ActiveCount.Value}" />
       <TextBlock Text=" items left" />
-      <TextBox Text="{Binding FilterText.Value}" Watermark="Filter..."
+      <TextBox Text="{Binding FilterText}" PlaceholderText="Filter..."
                Width="160" />
       <Button Command="{Binding ClearCompletedCommand}" Content="Clear completed"
               HorizontalAlignment="Right" />
@@ -35,11 +36,11 @@
         <DataTemplate>
           <DockPanel Margin="4" LastChildFill="True">
             <Button DockPanel.Dock="Right"
-                    Command="{Binding $parent[Window].DataContext.RemoveItemCommand}"
+                    Command="{Binding $parent[Window].((vm:TodoListViewModel)DataContext)?.RemoveItemCommand}"
                     CommandParameter="{Binding}"
                     Content="X" Width="28" />
-            <CheckBox IsChecked="{Binding IsCompleted.Value}"
-                      Content="{Binding Text.Value}" />
+            <CheckBox IsChecked="{Binding IsCompleted}"
+                      Content="{Binding Text}" />
           </DockPanel>
         </DataTemplate>
       </ListBox.ItemTemplate>

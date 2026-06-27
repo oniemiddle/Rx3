@@ -1,7 +1,8 @@
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
+using TodoMVVM.Views;
 
-namespace Rx3.Samples.TodoMVVM;
+namespace TodoMVVM;
 
 public partial class App : Application
 {
@@ -11,7 +12,7 @@ public partial class App : Application
         {
             desktop.MainWindow = new MainWindow
             {
-                DataContext = new global::TodoMVVM.ViewModels.TodoListViewModel(),
+                DataContext = new ViewModels.TodoListViewModel(),
             };
         }
 

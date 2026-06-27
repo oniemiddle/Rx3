@@ -1,7 +1,7 @@
 using Avalonia;
 using Rx3.Avalonia;
 
-namespace Rx3.Samples.TodoMVVM;
+namespace TodoMVVM;
 
 public static class Program
 {

@@ -1,6 +1,6 @@
 using Avalonia.Controls;
 
-namespace Rx3.Samples.Counter;
+namespace Counter;
 
 public partial class MainWindow : Window
 {

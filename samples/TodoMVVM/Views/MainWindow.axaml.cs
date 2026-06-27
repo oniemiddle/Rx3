@@ -1,6 +1,6 @@
 using Avalonia.Controls;
 
-namespace Rx3.Samples.TodoMVVM;
+namespace TodoMVVM.Views;
 
 public partial class MainWindow : Window
 {
