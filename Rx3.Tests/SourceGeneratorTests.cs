@@ -70,7 +70,7 @@ public partial class SourceGeneratorTests
     public void ReactiveCommandAttribute_Execute_InvokesMethod()
     {
         var vm = new CommandViewModel();
-        vm.LoginCommand.Execute(R3.Unit.Default);
+        vm.LoginCommand.Execute(Unit.Default);
         vm.LoginCalled.ShouldBeTrue();
     }
 
@@ -81,7 +81,7 @@ public partial class SourceGeneratorTests
         var count = 0;
         using var sub = vm.WhenLogin().Subscribe(_ => count++);
 
-        vm.LoginCommand.Execute(R3.Unit.Default);
+        vm.LoginCommand.Execute(Unit.Default);
 
         count.ShouldBe(1);
     }

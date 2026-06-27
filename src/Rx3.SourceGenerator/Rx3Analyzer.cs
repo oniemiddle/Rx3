@@ -11,8 +11,8 @@ namespace Rx3.SourceGenerator;
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class Rx3Analyzer : DiagnosticAnalyzer
 {
-    public const string MissingDisposeId = "RX3_001";
-    public const string MissingAddToId = "RX3_002";
+    private const string MissingDisposeId = "RX3_001";
+    private const string MissingAddToId = "RX3_002";
 
     private static readonly DiagnosticDescriptor MissingDisposeRule = new(
         id: MissingDisposeId,
@@ -76,11 +76,10 @@ public sealed class Rx3Analyzer : DiagnosticAnalyzer
         {
             var disposeMethods = type.GetMembers()
                 .OfType<IMethodSymbol>()
-                .Where(m => m.Name is "Dispose" or "Dispose" && m.DeclaredAccessibility == Accessibility.Protected);
+                .Where(m => m.Name is "Dispose" && m.DeclaredAccessibility == Accessibility.Protected);
 
             if (disposeMethods.Any(m =>
-                m.Parameters.Length == 1 &&
-                m.Parameters[0].Type.SpecialType == SpecialType.System_Boolean))
+                m.Parameters is [{ Type.SpecialType: SpecialType.System_Boolean }]))
                 return true;
 
             type = type.BaseType;
