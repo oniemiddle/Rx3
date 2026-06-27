@@ -1,8 +1,3 @@
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
-using System.Text;
-
 namespace Rx3.SourceGenerator;
 
 [Generator(LanguageNames.CSharp)]
@@ -24,7 +19,7 @@ public sealed class ReactiveCommandGenerator : IIncrementalGenerator
 
         var typeDecl = methodDecl.FirstAncestorOrSelf<TypeDeclarationSyntax>();
         if (typeDecl is null) return null;
-        var typeSymbol = ctx.SemanticModel.GetDeclaredSymbol(typeDecl, ct) as ITypeSymbol;
+        ITypeSymbol? typeSymbol = ctx.SemanticModel.GetDeclaredSymbol(typeDecl, ct);
         if (typeSymbol is null || !InheritsFrom(typeSymbol, "Rx3.ReactiveObject")) return null;
 
         var fullTypeName = typeDecl.Identifier.Text;
@@ -84,9 +79,9 @@ public sealed class ReactiveCommandGenerator : IIncrementalGenerator
         foreach (var list in attrLists)
             foreach (var attr in list.Attributes)
             {
-                if (semModel.GetTypeInfo(attr, ct).Type?.ToDisplayString() is string tn &&
+                if (semModel.GetTypeInfo(attr, ct).Type?.ToDisplayString() is { } tn &&
                     (tn.EndsWith($".{name}Attribute") || tn == name)) return true;
-                if (attr.Name.ToString() is string ns && (ns == name || ns == $"{name}Attribute")) return true;
+                if (attr.Name.ToString() is { } ns && (ns == name || ns == $"{name}Attribute")) return true;
             }
         return false;
     }

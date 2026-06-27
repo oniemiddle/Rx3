@@ -95,6 +95,27 @@ public partial class SourceGeneratorTests
         public string NonReactive { get; set; } = "";
     }
 
+    // ── Required modifier ────────────────────────────────────────────
+
+    [Fact]
+    public void ReactiveAttribute_WithRequired_GeneratesProperty()
+    {
+        var vm = new RequiredViewModel { Name = "test" };
+        vm.Name.ShouldBe("test");
+    }
+
+    [Fact]
+    public void ReactiveAttribute_WithRequired_RaisesPropertyChanged()
+    {
+        var vm = new RequiredViewModel { Name = "init" };
+        string? captured = null;
+        vm.PropertyChanged += (_, e) => captured = e.PropertyName;
+
+        vm.Name = "updated";
+
+        captured.ShouldBe("Name");
+    }
+
     // Test ViewModel with [ReactiveCommand]
     private partial class CommandViewModel : ReactiveObject
     {
@@ -102,5 +123,12 @@ public partial class SourceGeneratorTests
 
         [ReactiveCommand]
         private void Login() => LoginCalled = true;
+    }
+
+    // Test ViewModel with required modifier
+    private partial class RequiredViewModel : ReactiveObject
+    {
+        [Reactive]
+        public required partial string Name { get; set; }
     }
 }

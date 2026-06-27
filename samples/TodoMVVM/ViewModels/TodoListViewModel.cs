@@ -8,20 +8,19 @@ public partial class TodoListViewModel : ReactiveObject
 {
     public AvaloniaList<TodoItemViewModel> Items { get; } = [];
 
-    [Reactive]
-    public partial string NewItemText { get; set; }
+    [Reactive] public partial string NewItemText { get; set; } = string.Empty;
+
+    [Reactive] public partial string FilterText { get; set; } = string.Empty;
 
     [Reactive]
-    public partial string FilterText { get; set; }
-
-    public BindableReactiveProperty<int> ActiveCount { get; }
+    public partial int ActiveCount { get; set; }
 
     public ReactiveCommand<TodoItemViewModel> RemoveItemCommand { get; }
 
-    private IDisposable? _filterSub;
+    private readonly IDisposable? _filterSub;
 
     public TodoListViewModel()
-    {
+    {  
         var always = new BehaviorSubject<bool>(true);
 
         // RemoveItem command (parameterized, can't use source generator)
@@ -30,14 +29,14 @@ public partial class TodoListViewModel : ReactiveObject
             Items.Remove(item);
             item.Dispose();
             UpdateActiveCount();
-        });
+        }).AddTo(ref DisposableBag);
 
         // Seed data
         Items.Add(new TodoItemViewModel("Learn Rx3") { IsCompleted = true });
         Items.Add(new TodoItemViewModel("Build an app"));
         Items.Add(new TodoItemViewModel("Write tests"));
 
-        ActiveCount = new BindableReactiveProperty<int>(Items.Count(x => !x.IsCompleted));
+        ActiveCount = Items.Count(x => !x.IsCompleted);
 
         // Wire filter text changes
         _filterSub = WhenValueChanged(() => FilterText)
@@ -70,7 +69,7 @@ public partial class TodoListViewModel : ReactiveObject
         var filtered = string.IsNullOrEmpty(FilterText)
             ? Items
             : Items.Where(x => x.Text.Contains(FilterText, StringComparison.OrdinalIgnoreCase));
-        ActiveCount.Value = filtered.Count(x => !x.IsCompleted);
+        ActiveCount = filtered.Count(x => !x.IsCompleted);
     }
 
     protected override void Dispose(bool disposing)

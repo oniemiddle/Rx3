@@ -20,10 +20,11 @@
   </ItemGroup>
 
   <!-- Source Generator for [Reactive] / [ReactiveCommand] -->
-  <Target Name="IncludeSourceGenerator" BeforeTargets="CoreCompile">
-    <ItemGroup>
-      <Analyzer Include="..\..\src\Rx3.SourceGenerator\bin\$(Configuration)\netstandard2.1\Rx3.SourceGenerator.dll" />
-    </ItemGroup>
-  </Target>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Rx3.SourceGenerator\Rx3.SourceGenerator.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"
+                      PrivateAssets="all" />
+  </ItemGroup>
 
 </Project>

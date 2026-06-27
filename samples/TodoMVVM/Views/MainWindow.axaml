@@ -21,7 +21,7 @@
     <!-- Stats bar -->
     <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Spacing="16"
                 Margin="0 8 0 0">
-      <TextBlock Text="{Binding ActiveCount.Value}" />
+      <TextBlock Text="{Binding ActiveCount}" />
       <TextBlock Text=" items left" />
       <TextBox Text="{Binding FilterText}" PlaceholderText="Filter..."
                Width="160" />

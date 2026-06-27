@@ -1,103 +1,234 @@
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
-using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
 
 namespace Rx3.SourceGenerator;
 
 /// <summary>
-/// Analyzer that flags potential resource leaks in ReactiveObject subclasses.
+/// Analyzer that flags IDisposable members not disposed in Dispose methods.
 /// </summary>
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class Rx3Analyzer : DiagnosticAnalyzer
 {
     private const string MissingDisposeId = "RX3_001";
-    private const string MissingAddToId = "RX3_002";
 
     private static readonly DiagnosticDescriptor MissingDisposeRule = new(
         id: MissingDisposeId,
-        title: "ReactiveObject subclass should dispose resources",
-        messageFormat: "Type '{0}' extends ReactiveObject but does not override Dispose(bool). "
-                     + "Add a Dispose method or suppress this warning if resources are managed elsewhere.",
+        title: "IDisposable field is not disposed",
+        messageFormat: "Field '{0}' implements IDisposable but is not disposed in Dispose(). "
+                     + "Add '{1}.Dispose()' or '{1}.AddTo(ref DisposableBag)' in Dispose.",
         category: "Reliability",
         defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
-        description: "ReactiveObject subclasses that acquire disposable resources should override Dispose(bool) to clean them up.");
-
-    private static readonly DiagnosticDescriptor MissingAddToRule = new(
-        id: MissingAddToId,
-        title: "Subscribe result should be added to DisposableBag",
-        messageFormat: "The return value of 'Subscribe' is not assigned or added to any DisposableBag. "
-                     + "Use '.AddTo(ref DisposableBag)' to prevent subscription leaks.",
-        category: "Reliability",
-        defaultSeverity: DiagnosticSeverity.Warning,
-        isEnabledByDefault: true,
-        description: "Subscription results from Observable.Subscribe() should be added to a DisposableBag to prevent memory leaks.");
+        description: "Fields implementing IDisposable should be explicitly disposed in the Dispose method.");
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
-        [MissingDisposeRule, MissingAddToRule];
+        [MissingDisposeRule];
 
     public override void Initialize(AnalysisContext context)
     {
         context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None);
         context.EnableConcurrentExecution();
-        context.RegisterSymbolAction(AnalyzeDispose, SymbolKind.NamedType);
+        context.RegisterSymbolAction(AnalyzeType, SymbolKind.NamedType);
     }
 
-    private static void AnalyzeDispose(SymbolAnalysisContext context)
+    private static void AnalyzeType(SymbolAnalysisContext ctx)
     {
-        var namedType = (INamedTypeSymbol)context.Symbol;
-        if (namedType.TypeKind != TypeKind.Class)
+        var type = (INamedTypeSymbol)ctx.Symbol;
+
+        if (type.TypeKind != TypeKind.Class)
             return;
 
-        // Only check types that extend ReactiveObject
-        if (!InheritsFrom(namedType, "Rx3.ReactiveObject"))
+        if (!InheritsFrom(type, "Rx3.ReactiveObject"))
             return;
 
-        // Skip if already has Dispose override
-        if (HasDisposeOverride(namedType))
+        var disposableMembers = GetDisposableMembers(type);
+
+        if (disposableMembers.Count == 0)
             return;
 
-        // Check if the type has any IDisposable fields
-        bool hasDisposableField = namedType.GetMembers()
-            .OfType<IFieldSymbol>()
-            .Any(f => f.Type.AllInterfaces.Any(i => i.ToDisplayString() == "System.IDisposable"));
+        var handled = GetHandledMembers(type);
 
-        if (hasDisposableField)
+        foreach (var member in disposableMembers)
         {
-            var diagnostic = Diagnostic.Create(MissingDisposeRule, namedType.Locations[0], namedType.Name);
-            context.ReportDiagnostic(diagnostic);
+            if (!handled.Contains(member.Name))
+                Report(ctx, member);
         }
     }
 
-    private static bool HasDisposeOverride(INamedTypeSymbol type)
+    private static void Report(SymbolAnalysisContext ctx, ISymbol member)
     {
-        while (type is not null)
-        {
-            var disposeMethods = type.GetMembers()
-                .OfType<IMethodSymbol>()
-                .Where(m => m.Name is "Dispose" && m.DeclaredAccessibility == Accessibility.Protected);
-
-            if (disposeMethods.Any(m =>
-                m.Parameters is [{ Type.SpecialType: SpecialType.System_Boolean }]))
-                return true;
-
-            type = type.BaseType;
-            // Don't search above ReactiveObject
-            if (type?.ToDisplayString() == "Rx3.ReactiveObject" || type?.ToDisplayString() == "System.Object")
-                break;
-        }
-        return false;
+        ctx.ReportDiagnostic(
+            Diagnostic.Create(
+                MissingDisposeRule,
+                member.Locations[0],
+                member.Name,
+                member.Name));
     }
 
-    private static bool InheritsFrom(ITypeSymbol? type, string baseTypeFullName)
+    private static bool ImplementsIDisposable(ITypeSymbol type)
+    {
+        return type.SpecialType == SpecialType.System_IDisposable
+               || type.AllInterfaces.Any(i => i.SpecialType == SpecialType.System_IDisposable);
+    }
+
+    private static bool InheritsFrom(ITypeSymbol? type, string baseType)
     {
         while (type is not null)
         {
-            if (type.ToDisplayString() == baseTypeFullName)
-                return true;
+            if (type.ToDisplayString() == baseType) return true;
             type = type.BaseType;
         }
         return false;
+    }
+    
+    private static HashSet<string> GetHandledMembers(INamedTypeSymbol type)
+    {
+        var handled = new HashSet<string>();
+
+        foreach (var syntaxRef in type.DeclaringSyntaxReferences)
+        {
+            if (syntaxRef.GetSyntax() is not ClassDeclarationSyntax classDecl)
+                continue;
+
+            CollectDisposeCalls(classDecl, handled);
+            CollectDirectAddToCalls(classDecl, handled);
+            CollectAssignmentAddToCalls(classDecl, handled);
+        }
+
+        return handled;
+    }
+
+    #region Collector
+
+    private static void CollectDisposeCalls(
+        ClassDeclarationSyntax classDecl,
+        HashSet<string> handled)
+    {
+        foreach (var invoke in classDecl.DescendantNodes().OfType<InvocationExpressionSyntax>())
+        {
+            if (!TryGetMethodCall(invoke, out var method, out var receiver))
+                continue;
+
+            if (method != "Dispose")
+                continue;
+
+            if (TryGetMemberName(receiver, out var name))
+                handled.Add(name);
+        }
+    }
+    
+    private static void CollectDirectAddToCalls(
+        ClassDeclarationSyntax classDecl,
+        HashSet<string> handled)
+    {
+        foreach (var invoke in classDecl.DescendantNodes().OfType<InvocationExpressionSyntax>())
+        {
+            if (!TryGetMethodCall(invoke, out var method, out var receiver))
+                continue;
+
+            if (method != "AddTo")
+                continue;
+
+            if (TryGetMemberName(receiver, out var name))
+                handled.Add(name);
+        }
+    }
+    
+    private static void CollectAssignmentAddToCalls(
+        ClassDeclarationSyntax classDecl,
+        HashSet<string> handled)
+    {
+        foreach (var assignment in classDecl.DescendantNodes()
+                     .OfType<AssignmentExpressionSyntax>())
+        {
+            if (!TryGetMemberName(assignment.Left, out var member))
+                continue;
+
+            if (assignment.Right is not InvocationExpressionSyntax invoke)
+                continue;
+
+            if (!TryGetMethodCall(invoke, out var method, out _))
+                continue;
+
+            if (method == "AddTo")
+                handled.Add(member);
+        }
+    }
+
+    #endregion
+    
+    private static bool TryGetMethodCall(
+        InvocationExpressionSyntax invoke,
+        out string method,
+        out ExpressionSyntax receiver)
+    {
+        switch (invoke.Expression)
+        {
+            case MemberAccessExpressionSyntax access:
+                method = access.Name.Identifier.ValueText;
+                receiver = access.Expression;
+                return true;
+
+            case MemberBindingExpressionSyntax binding
+                when invoke.Parent is ConditionalAccessExpressionSyntax conditional:
+                method = binding.Name.Identifier.ValueText;
+                receiver = conditional.Expression;
+                return true;
+
+            default:
+                method = "";
+                receiver = null!;
+                return false;
+        }
+    }
+    
+    private static bool TryGetMemberName(
+        ExpressionSyntax expression,
+        out string name)
+    {
+        switch (expression)
+        {
+            case IdentifierNameSyntax id:
+                name = id.Identifier.ValueText;
+                return true;
+
+            case MemberAccessExpressionSyntax
+            {
+                Expression: ThisExpressionSyntax,
+                Name: IdentifierNameSyntax id
+            }:
+                name = id.Identifier.ValueText;
+                return true;
+
+            case PostfixUnaryExpressionSyntax postfix
+                when postfix.IsKind(SyntaxKind.SuppressNullableWarningExpression):
+                return TryGetMemberName(postfix.Operand, out name);
+
+            default:
+                name = "";
+                return false;
+        }
+    }
+    
+    private static IReadOnlyList<ISymbol> GetDisposableMembers(INamedTypeSymbol type)
+    {
+        return type.GetMembers()
+            .Where(m => !m.IsStatic)
+            .Where(m => m is IFieldSymbol { AssociatedSymbol: null } or IPropertySymbol)
+            .Where(m =>
+            {
+                var memberType = m switch
+                {
+                    IFieldSymbol f => f.Type,
+                    IPropertySymbol p => p.Type,
+                    _ => null
+                };
+
+                return memberType is not null &&
+                       ImplementsIDisposable(memberType);
+            })
+            .ToList();
     }
 }

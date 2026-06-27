@@ -1,8 +1,3 @@
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
-using System.Text;
-
 namespace Rx3.SourceGenerator;
 
 [Generator(LanguageNames.CSharp)]
@@ -10,11 +5,6 @@ public sealed class ReactivePropertyGenerator : IIncrementalGenerator
 {
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        // Register a debug marker to verify the generator runs
-        context.RegisterPostInitializationOutput(ctx =>
-        {
-            ctx.AddSource("debug_marker.g.cs", "// Rx3.SourceGenerator: ReactivePropertyGenerator loaded");
-        });
 
         // Find all partial property declarations and field declarations,
         // then check if they have [Reactive] via semantic model
@@ -26,17 +16,14 @@ public sealed class ReactivePropertyGenerator : IIncrementalGenerator
                     propDecl.Modifiers.Any(SyntaxKind.PartialKeyword))
                     return true;
 
-                if (node is FieldDeclarationSyntax)
-                    return true;
-
-                return false;
+                return node is FieldDeclarationSyntax;
             },
             transform: TransformCandidate);
 
         context.RegisterSourceOutput(candidates, GenerateCode);
     }
 
-    private static (string? typeName, string? ns, string propName, string fieldName, string propType, string hint)? TransformCandidate(
+    private static (string? typeName, string? ns, string propName, string propType, string hint, bool required)? TransformCandidate(
         GeneratorSyntaxContext ctx, System.Threading.CancellationToken ct)
     {
         var semModel = ctx.SemanticModel;
@@ -44,43 +31,47 @@ public sealed class ReactivePropertyGenerator : IIncrementalGenerator
 
         // Check for [Reactive] attribute
         bool hasReactive;
-        string propName, fieldName, propType;
+        string propName, propType;
         TypeDeclarationSyntax? typeDecl;
+        var isRequired = false;
 
-        if (node is PropertyDeclarationSyntax propDecl)
+        switch (node)
         {
-            hasReactive = HasAttribute(propDecl.AttributeLists, "Reactive", semModel, ct);
-            if (!hasReactive) return null;
+            case PropertyDeclarationSyntax propDecl:
+            {
+                hasReactive = HasAttribute(propDecl.AttributeLists, "Reactive", semModel, ct);
+                if (!hasReactive) return null;
 
-            typeDecl = propDecl.FirstAncestorOrSelf<TypeDeclarationSyntax>();
-            if (typeDecl is null) return null;
+                typeDecl = propDecl.FirstAncestorOrSelf<TypeDeclarationSyntax>();
+                if (typeDecl is null) return null;
 
-            propName = propDecl.Identifier.Text;
-            fieldName = $"_{char.ToLowerInvariant(propName[0])}{propName.Substring(1)}";
-            propType = propDecl.Type.ToString();
-        }
-        else if (node is FieldDeclarationSyntax fieldDecl)
-        {
-            hasReactive = HasAttribute(fieldDecl.AttributeLists, "Reactive", semModel, ct);
-            if (!hasReactive) return null;
+                propName = propDecl.Identifier.Text;
+                propType = propDecl.Type.ToString();
+                isRequired = propDecl.Modifiers.Any(SyntaxKind.RequiredKeyword);
+                break;
+            }
+            case FieldDeclarationSyntax fieldDecl:
+            {
+                hasReactive = HasAttribute(fieldDecl.AttributeLists, "Reactive", semModel, ct);
+                if (!hasReactive) return null;
 
-            typeDecl = fieldDecl.FirstAncestorOrSelf<TypeDeclarationSyntax>();
-            if (typeDecl is null) return null;
+                typeDecl = fieldDecl.FirstAncestorOrSelf<TypeDeclarationSyntax>();
+                if (typeDecl is null) return null;
 
-            var varDecl = fieldDecl.Declaration.Variables.FirstOrDefault();
-            if (varDecl is null) return null;
+                var varDecl = fieldDecl.Declaration.Variables.FirstOrDefault();
+                if (varDecl is null) return null;
 
-            fieldName = varDecl.Identifier.Text;
-            propName = ToPropertyName(fieldName);
-            propType = fieldDecl.Declaration.Type.ToString();
-        }
-        else
-        {
-            return null;
+                var fieldName = varDecl.Identifier.Text;
+                propName = ToPropertyName(fieldName);
+                propType = fieldDecl.Declaration.Type.ToString();
+                break;
+            }
+            default:
+                return null;
         }
 
         // Verify class extends ReactiveObject
-        var typeSymbol = semModel.GetDeclaredSymbol(typeDecl, ct) as ITypeSymbol;
+        ITypeSymbol? typeSymbol = semModel.GetDeclaredSymbol(typeDecl, ct);
         if (typeSymbol is null) return null;
         if (!InheritsFrom(typeSymbol, "Rx3.ReactiveObject")) return null;
 
@@ -96,14 +87,14 @@ public sealed class ReactivePropertyGenerator : IIncrementalGenerator
         var ns = typeSymbol.ContainingNamespace?.ToDisplayString() ?? "";
         var hint = $"{fullTypeName.Replace('.', '_')}.{propName}.g.cs";
 
-        return (fullTypeName, ns, propName, fieldName, propType, hint);
+        return (fullTypeName, ns, propName, propType, hint, isRequired);
     }
 
     private static void GenerateCode(SourceProductionContext context,
-        (string? typeName, string? ns, string propName, string fieldName, string propType, string hint)? data)
+        (string? typeName, string? ns, string propName, string propType, string hint, bool required)? data)
     {
         if (data is null) return;
-        var (typeName, ns, propName, fieldName, propType, hint) = data.Value;
+        var (typeName, ns, propName, propType, hint, required) = data.Value;
 
         var sb = new StringBuilder();
         sb.AppendLine("// <auto-generated />");
@@ -120,12 +111,10 @@ public sealed class ReactivePropertyGenerator : IIncrementalGenerator
             sb.AppendLine("{");
         }
         // Track closing braces
-        sb.AppendLine($"    private {propType} {fieldName};");
-        sb.AppendLine();
-        sb.AppendLine($"    public partial {propType} {propName}");
+        sb.AppendLine($"    public {(required ? "required " : "")} partial {propType} {propName}");
         sb.AppendLine("    {");
-        sb.AppendLine($"        get => {fieldName};");
-        sb.AppendLine($"        set => SetProperty(ref {fieldName}, value);");
+        sb.AppendLine("        get;");
+        sb.AppendLine("        set => SetProperty(ref field, value);");
         sb.AppendLine("    }");
         sb.AppendLine();
         sb.AppendLine($"    public global::R3.Observable<{propType}> When{propName}Changed()");
@@ -134,7 +123,7 @@ public sealed class ReactivePropertyGenerator : IIncrementalGenerator
         sb.AppendLine("    }");
 
         // Close nested type braces
-        for (int i = 0; i < typeParts.Length; i++)
+        for (var i = 0; i < typeParts.Length; i++)
             sb.AppendLine("}");
 
         context.AddSource(hint, sb.ToString());
@@ -174,12 +163,12 @@ public sealed class ReactivePropertyGenerator : IIncrementalGenerator
     private static string ToPropertyName(string fieldName)
     {
         var name = fieldName;
-        if (name.StartsWith("_"))
-            name = name.Substring(1);
+        if (name.StartsWith('_'))
+            name = name[1..];
         else if (name.StartsWith("m_"))
-            name = name.Substring(2);
+            name = name[2..];
         if (name.Length > 0)
-            name = char.ToUpperInvariant(name[0]) + name.Substring(1);
+            name = char.ToUpperInvariant(name[0]) + name[1..];
         return name;
     }
 }
